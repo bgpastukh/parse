@@ -1,2 +1,0 @@
-jqKeywordHighlight
-d_content
