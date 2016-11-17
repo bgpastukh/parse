@@ -29,13 +29,30 @@ function curl($url)
 
 function count_elements($string)
 {
+    $deleteWords = ["із", "до", "та", "на", "резюме", "отправить", "отрасль",
+        "работа", "работодателю", "по", "rabota", "соискателю", "ua",
+        "рубрика", "по", "com", "www", "mail", "знання",
+        "and", "of", "we", "in", "the", "to", "for", "is", "are", "with",
+        "on", "you", "be", "our", "as", "your", "such", "will", "more", "good", "it", "or",
+        "company", "developer", "development", "an", "foreign", "all", "working", "at", "com", "etc",
+        "that", "other", "вы", "вас", "из", "для", "мы", "от"
+    ];
+
+    foreach ($deleteWords as $value)
+    {
+        $word = " " . $value . " ";
+        if (strpos($string, $word))
+        {
+            $string = str_replace($word, " ", $string);
+        }
+    }
     $string = preg_replace("/  +/", " ", $string);
     $array = explode(" ", $string);
     $array = array_count_values($array);
     arsort($array);
     foreach ($array as $key => $value)
     {
-    	if (is_int($key) || mb_strlen($key) < 2 || $value == 1) {
+    	if (is_int($key) || mb_strlen($key) < 2 || $value < 3) {
     		continue;
     	}
         echo $key . " = " . $value . "<br>";
@@ -45,37 +62,23 @@ function count_elements($string)
 
 function format_string($string)
 {
-	$deleteWords = ["із", "до", "та", "на", "резюме", "отправить", "отрасль",
-        "рубрика", "по", "com", "www", "http", "mail", "знання", "зняння",
-        "and", "of", "we", "in", "the", "to", "for", "is", "are", "with",
-        "on", "you", "be", "our", "as", "your", "such", "will", "more", "good", "it", "or",
-        "company", "developer", "development"
-    ];
-	$string = preg_replace("/\r\n/", " ", $string);
     $string = strip_tags(mb_strtolower($string));
     $string = preg_replace("/[;,\/,,,!,.,:,-,(,)]/", " ", trim($string));
-    $string = preg_replace("/  +/", " ", trim($string));
-    foreach ($deleteWords as $value)
-    {
-        if (strpos($string, $value))
-        {
-            $string = str_replace($value . " ", " ", $string);
-        }
-    }
+//    $string = preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", " ", trim($string));
+    $string = preg_replace("/nbsp/", " ", $string);
 	return $string;
 }
 
-
 $parseSite = "http://rabota.ua/";
-$vacanciesPage = "http://rabota.ua/zapros/php-developer";
+$vacanciesPage = "http://rabota.ua/jobsearch/vacancy_list?keyWords=php";
 $vacanciesLinks = [];
 $data = "";
 
 // Parsing query pages
-for ($i = 1; $i <= 1; $i++)
+for ($i = 1; $i <= 5; $i++)
 {
     $links = [];
-    $parsedPage = curl($vacanciesPage . "/pg" . $i);
+    $parsedPage = curl($vacanciesPage . "&pg=" . $i);
     preg_match_all("/company[0-9]+\/vacancy[0-9]+/", $parsedPage['body'], $links);
     $vacanciesLinks = array_merge($vacanciesLinks, $links);
 }
@@ -88,18 +91,38 @@ foreach ($vacanciesLinks as $arr)
         // Parsing vacancy page
         $vacancy = curl($parseSite . $link);
         $html = str_get_html($vacancy['body']);
-    //    if ($html->find(".d_content", 0))
-    //    {
-    //	    $div = $html->find(".d_content", 0);
-    //    } else
-    //    {
-    //        $div = $html->find(".jqKeywordHighlight", 0);
-    //    }
-        $div = $html->find(".d_content", 0);
-        if (gettype($div) == null){
-            $div = $html->find(".jqKeywordHighlight", 0);
+        $text = "";
+
+        if (!empty($html->find('div.d_content')))
+        {
+            foreach ($html->find('div.d_content') as $item) {
+                foreach ($item->find('li') as $element)
+                {
+                    $text .= " " . $element->innertext;
+                }
+
+                foreach ($item->find('p') as $element)
+                {
+                    $text .= " " . $element->innertext;
+                }
+            }
+        } elseif (!empty($html->find('div.jqKeywordHighlight')))
+        {
+            foreach ($html->find('div.jqKeywordHighlight') as $item) {
+                foreach ($item->find('li') as $element)
+                {
+                    $text .= " " . $element->innertext;
+                }
+
+                foreach ($item->find('p') as $element)
+                {
+                    $text .= " " . $element->innertext;
+                }
+            }
         }
-        $text =  $div->innertext;
+
+//        var_dump($text);
+//        echo "<br>";
         $data .= format_string($text);
     }
 
@@ -107,14 +130,14 @@ foreach ($vacanciesLinks as $arr)
 
 
 
-
-$f = fopen('file.txt', 'w+');
-fwrite($f, count_elements($data));
+//$f = fopen('file.txt', 'w+');
+//fwrite($f, count_elements($data));
+//var_dump($data);
+count_elements($data);
 
 //echo "<pre>";
 //var_dump($vacanciesLinks);
 //echo "</pre>";
 
 
-//$response = curl("http://rabota.ua/zapros/php-developer");
 
