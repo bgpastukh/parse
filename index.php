@@ -27,26 +27,8 @@ function curl($url)
     );
 }
 
-function count_elements($string)
+function count_words($string)
 {
-    $deleteWords = ["із", "до", "та", "на", "резюме", "отправить", "отрасль",
-        "работа", "работодателю", "по", "rabota", "соискателю", "ua",
-        "рубрика", "по", "com", "www", "mail", "знання",
-        "and", "of", "we", "in", "the", "to", "for", "is", "are", "with",
-        "on", "you", "be", "our", "as", "your", "such", "will", "more", "good", "it", "or",
-        "company", "developer", "development", "an", "foreign", "all", "working", "at", "com", "etc",
-        "that", "other", "вы", "вас", "из", "для", "мы", "от"
-    ];
-
-    foreach ($deleteWords as $value)
-    {
-        $word = " " . $value . " ";
-        if (strpos($string, $word))
-        {
-            $string = str_replace($word, " ", $string);
-        }
-    }
-    $string = preg_replace("/  +/", " ", $string);
     $array = explode(" ", $string);
     $array = array_count_values($array);
     arsort($array);
@@ -55,17 +37,66 @@ function count_elements($string)
     	if (is_int($key) || mb_strlen($key) < 2 || $value < 3) {
     		continue;
     	}
-        echo $key . " = " . $value . "<br>";
+        echo $key . " = " . $value . " раз. <br>";
     }
     return implode(" ", $array);
+}
+
+function cmp($a, $b)
+{
+    if ($a == $b) {
+        return 0;
+    }
+    return ($a < $b) ? 1 : -1;
+}
+
+function count_phrases($string)
+{
+    $string = preg_replace("/  +/", " ", $string);
+    $array = explode(" ", $string);
+    $result = [];
+
+    for ($i = 0; $i < count($array) - 2; $i++)
+    {
+        $phrase = $array[$i] . " " . $array[$i + 1] . " " . $array[$i + 2];
+        preg_match_all("/" . $phrase . "/", $string, $matches);
+        array_push($result, $matches);
+    }
+
+    usort($result, "cmp");
+    for ($i = 0; $i < 500; $i++)
+    {
+        if ($result[$i] == $result[$i + 1]) {
+            continue;
+        } else if (count($result[$i]['0']) > 1) {
+            echo $result[$i]['0']['0'] . " = " . count($result[$i]['0']) . " раз. <br>";
+        }
+    }
 }
 
 function format_string($string)
 {
     $string = strip_tags(mb_strtolower($string));
-    $string = preg_replace("/[;,\/,,,!,.,:,-,(,)]/", " ", trim($string));
+    $string = preg_replace("/[;,\/,,,!,.,:,(,)]/", " ", trim($string));
 //    $string = preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", " ", trim($string));
     $string = preg_replace("/nbsp/", " ", $string);
+    $deleteWords = ["із", "до", "та", "на", "резюме", "отправить", "отрасль",
+        "работа", "работодателю", "по", "rabota", "соискателю", "ua",
+        "рубрика", "по", "com", "www", "mail",
+        "and", "of", "we", "in", "the", "to", "for", "is", "are", "with",
+        "on", "you", "be", "our", "as", "your", "such", "will", "more", "it", "or",
+        "company", "developer", "development", "an", "foreign", "all", "working", "at", "com", "etc",
+        "that", "other", "вы", "вас", "из", "для", "мы", "от", "с", "а", "&", "контактное", "лицо", "-",
+    ];
+
+    foreach ($deleteWords as $value)
+    {
+        $word = " " . $value . " ";
+        if (strpos($string, $word)) {
+            $string = str_replace($word, " ", $string);
+        }
+    }
+    $string = preg_replace("/  +/", " ", $string);
 	return $string;
 }
 
@@ -133,7 +164,9 @@ foreach ($vacanciesLinks as $arr)
 //$f = fopen('file.txt', 'w+');
 //fwrite($f, count_elements($data));
 //var_dump($data);
-count_elements($data);
+count_words($data);
+//echo "<hr>";
+//@count_phrases($data);
 
 //echo "<pre>";
 //var_dump($vacanciesLinks);
